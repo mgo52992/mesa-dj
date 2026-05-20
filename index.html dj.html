@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DJ Freq Pro v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07070f;
+      --panel: #0e0e1c;
+      --card: #121220;
+      --border: #1c1c30;
+      --cyan: #00d4ff;
+      --green: #00ff88;
+      --orange: #ff6622;
+      --purple: #bb44ff;
+      --pink: #ff3388;
+      --muted: #3a3a5a;
+      --dim: #5a5a7a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 12px 40px;
+      background-image: radial-gradient(ellipse 80% 30% at 50% 0%, #00d4ff08 0%, transparent 60%);
+    }
+    h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(16px,4vw,26px); letter-spacing: 6px; color: var(--cyan); text-align: center; margin-bottom: 3px; }
+    .sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-align: center; margin-bottom: 16px; }
+    .mesa { background: var(--panel); border-radius: 22px; padding: 16px; width: 100%; max-width: 720px; border: 1px solid var(--border); }
+
+    /* TOP BAR */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .status-grp { display: flex; align-items: center; gap: 8px; }
+    .sdot { width: 10px; height: 10px; border-radius: 50%; background: #1a1a2a; transition: all .3s; }
+    .sdot.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .stxt { font-size: 11px; color: var(--muted); letter-spacing: 2px; transition: color .3s; }
+    .stxt.on { color: var(--green); }
+    .powerbtn { width: 54px; height: 54px; border-radius: 50%; border: 2px solid #222; background: #0a0a14; cursor: pointer; font-size: 22px; color: #333; transition: all .2s; display: flex; align-items: center; justify-content: center; }
+    .powerbtn:hover { border-color: #444; color: #555; }
+    .powerbtn.on { border-color: var(--green); color: var(--green); box-shadow: 0 0 18px #00ff8830; }
+
+    /* RECORDER */
+    .recorder { background: var(--card); border-radius: 12px; padding: 10px 14px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .rec-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; flex: 1; min-width: 80px; }
+    .recbtn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-family: 'Share Tech Mono', monospace; font-size: 11px; cursor: pointer; letter-spacing: 1px; transition: all .15s; color: var(--dim); }
+    .recbtn:hover { border-color: var(--dim); color: #aaa; }
+    .recbtn.recording { border-color: var(--pink); color: var(--pink); box-shadow: 0 0 10px #ff338830; animation: pulse 1s infinite; }
+    .recbtn.hasrec { border-color: var(--green); color: var(--green); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .rec-time { font-size: 13px; color: var(--pink); min-width: 40px; font-family: 'Orbitron', sans-serif; }
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); display: none; }
+    .rec-dot.show { display: block; animation: pulse .8s infinite; }
+
+    /* MAIN OSCILLOSCOPES + DECKS */
+    .decks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .deck { background: var(--card); border-radius: 16px; padding: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+    .dlabel { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-align: center; }
+    .dlabel.L { color: var(--cyan); }
+    .dlabel.R { color: var(--orange); }
+
+    /* CIRCULAR OSCILLOSCOPE */
+    .oscillo-wrap { display: flex; justify-content: center; }
+    canvas.oscillo { border-radius: 50%; background: #020208; border: 2px solid var(--border); }
+
+    /* FREQ DISPLAY */
+    .freq-disp { text-align: center; }
+    .fval { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; }
+    .fval.L { color: var(--cyan); }
+    .fval.R { color: var(--orange); }
+    .funit { font-size: 10px; color: var(--muted); }
+
+    /* SLIDERS */
+    .slabel { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 2px; }
+    input[type=range] { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px; background: #1a1a2e; outline: none; cursor: pointer; margin: 3px 0; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; cursor: pointer; }
+    .fslider-L { accent-color: var(--cyan); }
+    .fslider-R { accent-color: var(--orange); }
+    .wslider-L { accent-color: #aa88ff; }
+    .wslider-R { accent-color: #ffaa44; }
+    .range-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+
+    /* VERTICAL FADERS */
+    .faders-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .fader-panel { background: var(--card); border-radius: 14px; padding: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .fader-title { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); }
+    .fader-title.L { color: var(--cyan); }
+    .fader-title.R { color: var(--orange); }
+    .fader-body { display: flex; align-items: flex-end; gap: 16px; height: 140px; }
+    .fader-track { width: 10px; height: 120px; background: #0a0a14; border-radius: 5px; border: 1px solid var(--border); position: relative; display: flex; align-items: flex-end; overflow: hidden; }
+    .fader-fill { width: 100%; border-radius: 5px; transition: height .1s; }
+    .fader-fill.L { background: linear-gradient(0deg, var(--green), var(--cyan)); }
+    .fader-fill.R { background: linear-gradient(0deg, var(--pink), var(--orange)); }
+    .fader-slider-wrap { display: flex; flex-direction: column; align-items: center; height: 130px; justify-content: center; }
+    input[type=range].vertical {
+      -webkit-appearance: slider-vertical;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 28px;
+      height: 120px;
+      padding: 0;
+      cursor: pointer;
+      background: transparent;
+    }
+    input[type=range].vertical::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 14px; border-radius: 4px; cursor: pointer; }
+    .vslider-L { accent-color: var(--green); }
+    .vslider-R { accent-color: var(--pink); }
+    .fader-val { font-family: 'Orbitron', sans-serif; font-size: 13px; }
+    .fader-val.L { color: var(--green); }
+    .fader-val.R { color: var(--orange); }
+    .vol-bar-bg { width: 100%; height: 5px; background: #0a0a14; border-radius: 3px; overflow: hidden; }
+    .vol-bar { height: 100%; border-radius: 3px; transition: width .1s; }
+    .vol-bar.L { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .vol-bar.R { background: linear-gradient(90deg, var(--pink), var(--orange)); }
+
+    /* WAVEFORM BUTTONS */
+    .wave-row { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+    .wbtn { background: #0a0a14; border: 1px solid #222; color: var(--dim); font-family: 'Share Tech Mono', monospace; font-size: 9px; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all .15s; letter-spacing: 1px; }
+    .wbtn:hover { border-color: #444; color: #aaa; }
+    .wbtn.aL { border-color: var(--cyan); color: var(--cyan); background: #00d4ff11; }
+    .wbtn.aR { border-color: var(--orange); color: var(--orange); background: #ff662211; }
+
+    /* CROSSFADER */
+    .cross-panel { background: var(--card); border-radius: 14px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+    .cross-title { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-align: center; margin-bottom: 8px; }
+    .cf-row { display: flex; align-items: center; gap: 8px; }
+    .cf-side { font-size: 11px; min-width: 14px; }
+    .cf-side.L { color: var(--cyan); }
+    .cf-side.R { color: var(--orange); }
+    .cfslider { flex: 1; accent-color: var(--purple); }
+    .cf-vals { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    /* MAIN VIZ */
+    .viz-wrap { background: #020208; border-radius: 10px; height: 50px; margin-bottom: 12px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+    #vizMain { width: 100%; height: 100%; display: block; }
+    .viz-off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #222; font-size: 10px; letter-spacing: 3px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 10px; letter-spacing: 2px; margin-top: 16px; }
+
+    @media(max-width:500px) {
+      .decks { grid-template-columns: 1fr; }
+      .faders-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<h1>DJ FREQ PRO</h1>
+<p class="sub">SIMULADOR DE AUDIO v2.0 — WEB AUDIO API</p>
+
+<div class="mesa">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="status-grp">
+      <div class="sdot" id="sdot"></div>
+      <span class="stxt" id="stxt">APAGADO</span>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;color:#222;letter-spacing:2px;margin-bottom:2px">GENERADOR</div>
+      <div id="masterFreq" style="font-family:'Orbitron',sans-serif;font-size:12px;color:#222">-- Hz</div>
+    </div>
+    <button class="powerbtn" id="powerBtn" aria-label="Encender apagar">⏻</button>
+  </div>
+
+  <!-- RECORDER -->
+  <div class="recorder">
+    <span class="rec-label">● REC STUDIO</span>
+    <div class="rec-dot" id="recDot"></div>
+    <span class="rec-time" id="recTime">0:00</span>
+    <button class="recbtn" id="recBtn" disabled>⏺ GRABAR</button>
+    <button class="recbtn" id="stopBtn" disabled>⏹ DETENER</button>
+    <button class="recbtn" id="dlBtn" disabled>⬇ DESCARGAR</button>
+  </div>
+
+  <!-- MAIN VISUALIZER -->
+  <div class="viz-wrap">
+    <canvas id="vizMain"></canvas>
+    <div class="viz-off" id="vizOff">● SIN SEÑAL</div>
+  </div>
+
+  <!-- DECKS with circular oscilloscopes -->
+  <div class="decks">
+    <!-- DECK A -->
+    <div class="deck">
+      <div class="dlabel L">◀ DECK A — IZQUIERDO</div>
+      <div class="oscillo-wrap">
+        <canvas class="oscillo" id="oscL" width="130" height="130"></canvas>
+      </div>
+      <div class="freq-disp">
+        <span class="fval L" id="fvL">220</span>
+        <span class="funit">Hz</span>
+      </div>
+      <div class="slabel">FRECUENCIA</div>
+      <input type="range" class="fslider-L" id="sfL" min="20" max="2000" value="220" step="1">
+      <div class="range-labels"><span>20Hz</span><span>2kHz</span></div>
+      <div class="slabel">ANCHO DE ONDA (TIEMPO)</div>
+      <input type="range" class="wslider-L" id="swL" min="1" max="20" value="6" step="1">
+      <div class="range-labels"><span>ANGOSTO</span><span>ANCHO</span></div>
+      <div class="slabel" style="margin-top:4px">FORMA DE ONDA</div>
+      <div class="wave-row" id="wbL">
+        <button class="wbtn aL" data-w="sine">SINE</button>
+        <button class="wbtn" data-w="square">SQR</button>
+        <button class="wbtn" data-w="sawtooth">SAW</button>
+        <button class="wbtn" data-w="triangle">TRI</button>
+      </div>
+    </div>
+
+    <!-- DECK B -->
+    <div class="deck">
+      <div class="dlabel R">DECK B — DERECHO ▶</div>
+      <div class="oscillo-wrap">
+        <canvas class="oscillo" id="oscR" width="130" height="130"></canvas>
+      </div>
+      <div class="freq-disp">
+        <span class="fval R" id="fvR">440</span>
+        <span class="funit">Hz</span>
+      </div>
+      <div class="slabel">FRECUENCIA</div>
+      <input type="range" class="fslider-R" id="sfR" min="20" max="2000" value="440" step="1">
+      <div class="range-labels"><span>20Hz</span><span>2kHz</span></div>
+      <div class="slabel">ANCHO DE ONDA (TIEMPO)</div>
+      <input type="range" class="wslider-R" id="swR" min="1" max="20" value="6" step="1">
+      <div class="range-labels"><span>ANGOSTO</span><span>ANCHO</span></div>
+      <div class="slabel" style="margin-top:4px">FORMA DE ONDA</div>
+      <div class="wave-row" id="wbR">
+        <button class="wbtn aR" data-w="sine">SINE</button>
+        <button class="wbtn" data-w="square">SQR</button>
+        <button class="wbtn" data-w="sawtooth">SAW</button>
+        <button class="wbtn" data-w="triangle">TRI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERTICAL FADERS -->
+  <div class="faders-row">
+    <div class="fader-panel">
+      <div class="fader-title L">▼ FADER A — VOL IZQUIERDO</div>
+      <div class="fader-body">
+        <div class="fader-track">
+          <div class="fader-fill L" id="ffL" style="height:70%"></div>
+        </div>
+        <div class="fader-slider-wrap">
+          <input type="range" class="vertical vslider-L" id="svL" min="0" max="100" value="70" step="1" orient="vertical" aria-label="Volumen izquierdo">
+        </div>
+      </div>
+      <div class="fader-val L" id="fvvL">70%</div>
+      <div style="width:100%">
+        <div class="vol-bar-bg"><div class="vol-bar L" id="vbarL" style="width:70%"></div></div>
+      </div>
+    </div>
+
+    <div class="fader-panel">
+      <div class="fader-title R">▼ FADER B — VOL DERECHO</div>
+      <div class="fader-body">
+        <div class="fader-track">
+          <div class="fader-fill R" id="ffR" style="height:70%"></div>
+        </div>
+        <div class="fader-slider-wrap">
+          <input type="range" class="vertical vslider-R" id="svR" min="0" max="100" value="70" step="1" orient="vertical" aria-label="Volumen derecho">
+        </div>
+      </div>
+      <div class="fader-val R" id="fvvR">70%</div>
+      <div style="width:100%">
+        <div class="vol-bar-bg"><div class="vol-bar R" id="vbarR" style="width:70%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CROSSFADER -->
+  <div class="cross-panel">
+    <div class="cross-title">CROSSFADER</div>
+    <div class="cf-row">
+      <span class="cf-side L">A</span>
+      <input type="range" class="cfslider" id="cf" min="0" max="100" value="50" step="1">
+      <span class="cf-side R">B</span>
+    </div>
+    <div class="cf-vals">
+      <span id="cfA" style="color:var(--cyan)">A: 71%</span>
+      <span style="color:var(--muted)">MIX</span>
+      <span id="cfB" style="color:var(--orange)">B: 71%</span>
+    </div>
+  </div>
+
+</div>
+<div class="footer">DJ FREQ PRO v2.0 — MADE WITH ♥ — WEB AUDIO API</div>
+
+<script>
+let actx=null, oscL_node=null, oscR_node=null;
+let gainL=null, gainR=null, panL=null, panR=null;
+let analyserMain=null, analyserL=null, analyserR=null;
+let destNode=null, mediaRecorder=null, recChunks=[];
+let animId=null, recTimerInt=null, recSec=0;
+let isOn=false, isRec=false;
+let waveL='sine', waveR='sine';
+let rotL=0, rotR=0;
+let recBlob=null;
+
+const $ = id => document.getElementById(id);
+
+// Elements
+const powerBtn=$('powerBtn'), sdot=$('sdot'), stxt=$('stxt'), vizOff=$('vizOff');
+const masterFreq=$('masterFreq');
+const sfL=$('sfL'), sfR=$('sfR'), svL=$('svL'), svR=$('svR'), cf=$('cf');
+const swL=$('swL'), swR=$('swR');
+const fvL=$('fvL'), fvR=$('fvR');
+const fvvL=$('fvvL'), fvvR=$('fvvR');
+const ffL=$('ffL'), ffR=$('ffR');
+const vbarL=$('vbarL'), vbarR=$('vbarR');
+const cfA=$('cfA'), cfB=$('cfB');
+const recBtn=$('recBtn'), stopBtn=$('stopBtn'), dlBtn=$('dlBtn');
+const recDot=$('recDot'), recTime=$('recTime');
+const vizMain=$('vizMain'), ctx2d=vizMain.getContext('2d');
+const oscLcan=$('oscL'), oscRcan=$('oscR');
+const ctxL=oscLcan.getContext('2d'), ctxR=oscRcan.getContext('2d');
+
+function getCF() {
+  const v = parseInt(cf.value)/100;
+  return { gA: Math.cos(v*Math.PI/2), gB: Math.sin(v*Math.PI/2) };
+}
+
+function applyGains() {
+  if(!gainL||!gainR) return;
+  const {gA,gB} = getCF();
+  gainL.gain.value = (parseInt(svL.value)/100)*gA;
+  gainR.gain.value = (parseInt(svR.value)/100)*gB;
+}
+
+function updateVols() {
+  const vl=svL.value, vr=svR.value;
+  ffL.style.height=vl+'%'; ffR.style.height=vr+'%';
+  vbarL.style.width=vl+'%'; vbarR.style.width=vr+'%';
+  fvvL.textContent=vl+'%'; fvvR.textContent=vr+'%';
+}
+
+function updateCF() {
+  const {gA,gB}=getCF();
+  cfA.textContent='A: '+Math.round(gA*100)+'%';
+  cfB.textContent='B: '+Math.round(gB*100)+'%';
+}
+
+function startAudio() {
+  actx = new (window.AudioContext||window.webkitAudioContext)();
+  destNode = actx.createMediaStreamDestination();
+
+  analyserMain = actx.createAnalyser(); analyserMain.fftSize=512;
+  analyserL = actx.createAnalyser(); analyserL.fftSize=256;
+  analyserR = actx.createAnalyser(); analyserR.fftSize=256;
+  analyserMain.connect(actx.destination);
+  analyserMain.connect(destNode);
+
+  oscL_node = actx.createOscillator();
+  gainL = actx.createGain();
+  panL = actx.createStereoPanner(); panL.pan.value=-1;
+  oscL_node.type=waveL; oscL_node.frequency.value=parseInt(sfL.value);
+  oscL_node.connect(gainL); gainL.connect(analyserL); gainL.connect(panL); panL.connect(analyserMain);
+  oscL_node.start();
+
+  oscR_node = actx.createOscillator();
+  gainR = actx.createGain();
+  panR = actx.createStereoPanner(); panR.pan.value=1;
+  oscR_node.type=waveR; oscR_node.frequency.value=parseInt(sfR.value);
+  oscR_node.connect(gainR); gainR.connect(analyserR); gainR.connect(panR); panR.connect(analyserMain);
+  oscR_node.start();
+
+  applyGains();
+  recBtn.disabled=false;
+  drawAll();
+}
+
+function stopAudio() {
+  cancelAnimationFrame(animId);
+  if(isRec) stopRecording();
+  if(oscL_node){oscL_node.stop();oscL_node=null;}
+  if(oscR_node){oscR_node.stop();oscR_node=null;}
+  if(analyserMain){analyserMain.disconnect();analyserMain=null;}
+  if(actx){actx.close();actx=null;}
+  ctx2d.clearRect(0,0,vizMain.width,vizMain.height);
+  clearOscillo(ctxL,oscLcan,'#00d4ff');
+  clearOscillo(ctxR,oscRcan,'#ff6622');
+  recBtn.disabled=true; stopBtn.disabled=true;
+}
+
+function clearOscillo(ctx,can,color) {
+  const W=can.width,H=can.height,cx=W/2,cy=H/2,r=W/2-4;
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='#020208'; ctx.fill();
+  ctx.strokeStyle=color+'33'; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+function drawAll() {
+  animId = requestAnimationFrame(drawAll);
+  drawMainViz();
+  drawOscillo(ctxL, oscLcan, analyserL, '#00d4ff', parseInt(swL.value));
+  drawOscillo(ctxR, oscRcan, analyserR, '#ff6622', parseInt(swR.value));
+}
+
+function drawMainViz() {
+  const W=vizMain.offsetWidth, H=vizMain.offsetHeight;
+  vizMain.width=W; vizMain.height=H;
+  if(!analyserMain) return;
+  const data=new Uint8Array(analyserMain.frequencyBinCount);
+  analyserMain.getByteTimeDomainData(data);
+  ctx2d.fillStyle='#020208'; ctx2d.fillRect(0,0,W,H);
+  ctx2d.lineWidth=2; ctx2d.strokeStyle='#00d4ff';
+  ctx2d.shadowColor='#00d4ff'; ctx2d.shadowBlur=5;
+  ctx2d.beginPath();
+  const sw=W/data.length; let x=0;
+  for(let i=0;i<data.length;i++){
+    const y=(data[i]/128)*(H/2);
+    i===0?ctx2d.moveTo(x,y):ctx2d.lineTo(x,y);
+    x+=sw;
+  }
+  ctx2d.stroke(); ctx2d.shadowBlur=0;
+}
+
+function drawOscillo(ctx, can, analyser, color, zoom) {
+  const W=can.width, H=can.height, cx=W/2, cy=H/2, r=W/2-6;
+  ctx.clearRect(0,0,W,H);
+  // background circle
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='#020208'; ctx.fill();
+  ctx.strokeStyle=color+'22'; ctx.lineWidth=1; ctx.stroke();
+  // grid circles
+  [0.33,0.66,1].forEach(s=>{
+    ctx.beginPath(); ctx.arc(cx,cy,r*s,0,Math.PI*2);
+    ctx.strokeStyle=color+'18'; ctx.lineWidth=0.5; ctx.stroke();
+  });
+  // crosshairs
+  ctx.strokeStyle=color+'18'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r); ctx.stroke();
+
+  if(!analyser) return;
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(data);
+
+  // draw waveform as polar / circular oscilloscope
+  ctx.beginPath();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2;
+  ctx.shadowColor=color; ctx.shadowBlur=8;
+
+  const pts = zoom * 8; // how many points to use, controlled by zoom
+  const step = Math.max(1, Math.floor(data.length / pts));
+  const usedData = [];
+  for(let i=0;i<data.length;i+=step) usedData.push(data[i]);
+
+  for(let i=0;i<usedData.length;i++){
+    const angle = (i/usedData.length)*Math.PI*2 - Math.PI/2;
+    const amp = (usedData[i]-128)/128;
+    const radius = r*0.4 + amp*r*0.45;
+    const x = cx + Math.cos(angle)*radius;
+    const y = cy + Math.sin(angle)*radius;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath(); ctx.stroke(); ctx.shadowBlur=0;
+
+  // center dot
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+// RECORDING
+function startRecording() {
+  if(!destNode) return;
+  recChunks=[]; recBlob=null; recSec=0;
+  recTime.textContent='0:00';
+  mediaRecorder = new MediaRecorder(destNode.stream);
+  mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) recChunks.push(e.data); };
+  mediaRecorder.onstop = ()=>{
+    recBlob = new Blob(recChunks,{type:'audio/webm'});
+    dlBtn.disabled=false;
+    dlBtn.classList.add('hasrec');
+  };
+  mediaRecorder.start();
+  isRec=true;
+  recDot.classList.add('show');
+  recBtn.classList.add('recording');
+  recBtn.textContent='● GRABANDO';
+  recBtn.disabled=true; stopBtn.disabled=false;
+  recTimerInt = setInterval(()=>{
+    recSec++;
+    const m=Math.floor(recSec/60), s=recSec%60;
+    recTime.textContent=m+':'+(s<10?'0':'')+s;
+  },1000);
+}
+
+function stopRecording() {
+  if(!mediaRecorder||mediaRecorder.state==='inactive') return;
+  mediaRecorder.stop(); isRec=false;
+  clearInterval(recTimerInt);
+  recDot.classList.remove('show');
+  recBtn.classList.remove('recording');
+  recBtn.textContent='⏺ GRABAR';
+  recBtn.disabled=false; stopBtn.disabled=true;
+}
+
+function downloadRec() {
+  if(!recBlob) return;
+  const url=URL.createObjectURL(recBlob);
+  const a=document.createElement('a');
+  a.href=url; a.download='djfreqpro_'+Date.now()+'.webm';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// EVENTS
+powerBtn.addEventListener('click',()=>{
+  isOn=!isOn;
+  if(isOn){
+    powerBtn.classList.add('on'); sdot.classList.add('on');
+    stxt.classList.add('on'); stxt.textContent='ENCENDIDO';
+    masterFreq.style.color='var(--cyan)';
+    vizOff.style.display='none';
+    startAudio();
+    updateMaster();
+  } else {
+    powerBtn.classList.remove('on'); sdot.classList.remove('on');
+    stxt.classList.remove('on'); stxt.textContent='APAGADO';
+    masterFreq.style.color='#222'; masterFreq.textContent='-- Hz';
+    vizOff.style.display='flex';
+    stopAudio();
+  }
+});
+
+sfL.addEventListener('input',()=>{ fvL.textContent=sfL.value; if(oscL_node) oscL_node.frequency.value=parseInt(sfL.value); updateMaster(); });
+sfR.addEventListener('input',()=>{ fvR.textContent=sfR.value; if(oscR_node) oscR_node.frequency.value=parseInt(sfR.value); updateMaster(); });
+svL.addEventListener('input',()=>{ updateVols(); applyGains(); });
+svR.addEventListener('input',()=>{ updateVols(); applyGains(); });
+cf.addEventListener('input',()=>{ updateCF(); applyGains(); });
+
+function updateMaster() {
+  masterFreq.textContent=sfL.value+' / '+sfR.value+' Hz';
+}
+
+document.getElementById('wbL').querySelectorAll('.wbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.getElementById('wbL').querySelectorAll('.wbtn').forEach(x=>x.classList.remove('aL'));
+    b.classList.add('aL'); waveL=b.dataset.w;
+    if(oscL_node) oscL_node.type=waveL;
+  });
+});
+document.getElementById('wbR').querySelectorAll('.wbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.getElementById('wbR').querySelectorAll('.wbtn').forEach(x=>x.classList.remove('aR'));
+    b.classList.add('aR'); waveR=b.dataset.w;
+    if(oscR_node) oscR_node.type=waveR;
+  });
+});
+
+recBtn.addEventListener('click', startRecording);
+stopBtn.addEventListener('click', stopRecording);
+dlBtn.addEventListener('click', downloadRec);
+
+// init
+updateVols(); updateCF();
+clearOscillo(ctxL,oscLcan,'#00d4ff');
+clearOscillo(ctxR,oscRcan,'#ff6622');
+</script>
+</body>
+</html>
